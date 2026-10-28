@@ -1,9 +1,5 @@
 package com.loghog;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,29 +16,9 @@ public class LogMetricsParser {
     private final AtomicLong errorCount = new AtomicLong();
     private final Set<String> uniqueIps = ConcurrentHashMap.newKeySet();
     private final List<Integer> latencies = Collections.synchronizedList(new ArrayList<>());
-    
-    private static final Path BAD_DATA_PATH = Path.of("bad_data.log");
-    private int badDataCount = 0;
-    private static final int MAX_BAD_DATA_LINES = 1000;
 
     private static final Pattern IP_PATTERN = Pattern.compile("\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b");
     private static final Pattern CHECKOUT_LATENCY_PATTERN = Pattern.compile("latency(?:_ms)?[:=]?\\s*(\\d+)");
-
-    private synchronized void writeBadData(String line) {
-        if (badDataCount >= MAX_BAD_DATA_LINES) {
-            return; 
-        }
-        try {
-            Files.writeString(
-                BAD_DATA_PATH,
-                line + System.lineSeparator(),
-                StandardOpenOption.CREATE,
-                StandardOpenOption.APPEND
-            );
-            badDataCount++;
-        } catch (IOException e) {
-        }
-    }
 
     @Extractor("ERROR")
     public void parseError(String line) {
@@ -57,7 +33,6 @@ public class LogMetricsParser {
                 uniqueIps.add(matcher.group());
             }
         } catch (Exception e) {
-            writeBadData(line);
         }
     }
 
@@ -70,7 +45,6 @@ public class LogMetricsParser {
                 latencies.add(latency);
             }
         } catch (Exception e) {
-            writeBadData(line);
         }
     }
 
